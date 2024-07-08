@@ -1,0 +1,118 @@
+// import moment from "moment";
+import { useDispatch, useSelector } from "react-redux";
+import { dateHandler } from "../../../utils/date";
+import { open_create_conversation } from "../../../features/chatSlice";
+import { getConversationId, getConversationName, getConversationPicture } from "../../../utils/chat.utils";
+import { capitalize } from "../../../utils/string";
+
+import SocketContext from "../../../context/SocketContext";
+  
+
+function Conversation({convo,socket, online, typing})  {
+
+  // console.log(moment(convo.latestMessage.createdAt).fromNow(true))
+  const dispatch = useDispatch();
+  const { user } = useSelector((state) => state.user);
+  const { activeConversation } = useSelector((state) => state.chat);
+  const { token } = user;
+  
+  // console.log("Convouser: ", convo.users)
+  // console.log("Convouser: ", convo.users)
+  // console.log("activeConversationID: ", activeConversation._id)
+  
+  const values = {
+    receiver_id: getConversationId(user, convo.users),
+    token
+  };
+
+ 
+
+  // let newConvo = await dispatch(open_create_conversation(values));
+  // socket.emit('join conversation', newConvo.payload._id)
+
+  const openConversation = async () => {
+    let newConvo = await dispatch(open_create_conversation(values));
+    
+    socket.emit('join conversation', newConvo.payload._id)
+    console.log("new convo" ,newConvo.payload.id)
+  };
+
+  
+  return (
+    <li
+      onClick={() => openConversation()} 
+      className={`list-none h-[72px] w-full dark:bg-dark_bg_1 hover:${convo._id !== activeConversation._id ? "dark:bg-dark_bg_2" : ""} cursor-pointer dark:text-dark_text_1 px-[10px] ${convo._id === activeConversation._id ? "dark::bg-dark_hover_1" : ""}`}>
+        
+        {/** Container */}
+        <div className="relative w-full flex items.center justify-between py-[10px]">
+          {/**izquierda */}
+          <div className="flex items-center gap-x-3">
+            {/**Imagen de usuario de conversacion */}
+            <div className={`relative min-w-[50px] max-w-[50px] h-[50px] rounded-full overflow-hidden ${online ? 'online' : ""}`}>
+              <img 
+                src={getConversationPicture(user,convo.users)} 
+                alt="picture" 
+                className="w-full h-full object-cover" 
+              />
+            </div>
+            {/**Nombre de la conversacion y mensaje */}
+            <div className="w-full flex flex-col">
+              {/**Nombre de la conversacion */}
+              <h1 className="font-bold flex items-center gap-x-2">
+                {capitalize(getConversationName(user, convo.users))}
+              </h1>
+              {/** Mensaje de la cvonversacion */}
+              <div>
+                <div className="flex items-center gap-x-1 dark:text-dark_text_2">
+                  <div className="flex-1 items-center gap-x-1 dark:text-dark_text_2">
+                    {/* <p>
+                      {
+                        convo.latestMessage?.message.length > 25 ? `${convo.latestMessage?.message.length.substring(0,20)}...` : convo.latestMessage?.message
+                      }
+                    </p> */}
+                    {
+                      typing === convo._id ? (
+                        <p className="text-green_1">Escribiendo...</p>
+                      ) : (
+                    
+                    <p>
+                      {
+                        convo.latestMessage?.message && convo.latestMessage.message.length > 25 ? 
+                        `${convo.latestMessage.message.substring(0, 25)}...` : 
+                        convo.latestMessage?.message
+                      }
+                    </p>)
+                    }
+
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+          {/** Derecha */}
+          <div className="flex flex-col gap-y-4 items-end text-xs">
+            <span className="dark:text-dark_text_2">
+                {convo.latestMessage?.createdAt ? dateHandler(convo.latestMessage?.createdAt) : ""}       
+            </span>
+            {/* <span>{moment(convo.latestMessage.createdAt).fromNow(true)}</span> */}
+          </div>
+
+        </div>
+        {/**Border */}
+        <div className="ml-16 border-b border-b-dark_border_1">
+                      
+        </div>
+    </li>
+  )
+}
+
+const ConversationWithContext = (props) => {
+  return(
+    <SocketContext.Consumer>
+      {(socket) => <Conversation {...props} socket={socket}/>}
+    </SocketContext.Consumer>
+    )
+};
+
+export default ConversationWithContext
